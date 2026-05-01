@@ -2,16 +2,6 @@
 #include <vector>
 
 /*
-// Для 2D тензоров (матриц)
-matmul(a, b)         // Умножение матриц (или dot product для 1D)
-dot(a, b)            // Скалярное произведение
-
-// Разложения (опционально)
-lu(), qr(), svd()    // LU, QR, SVD разложения
-solve(A, b)          // Решение линейной системы
-inv()                // Обратная матрица
-det()                // Определитель
-trace()              // След
 
 // Свертки
 conv1d(input, kernel, stride, padding)
@@ -77,9 +67,13 @@ public:
     Tensor(const T& value);
 
 public:
-    T& at(size_t i);                       // 1D dimension tensor
-    T& at(size_t m, size_t n);             // 2D dimension tensor
-    T& at(const std::vector<size_t>& ids); // 3D...ND dimensions tensors
+    T& At(size_t i);                       // 1D dimension tensor
+    T& At(size_t m, size_t n);             // 2D dimension tensor
+    T& At(const std::vector<size_t>& ids); // 3D...ND dimensions tensors
+
+    const T& At(size_t i) const;                       // 1D dimension tensor
+    const T& At(size_t m, size_t n) const;             // 2D dimension tensor
+    const T& At(const std::vector<size_t>& ids) const; // 3D...ND dimensions tensors
 
 public:
     static Tensor<T> Zeros(const std::vector<size_t>& dimensions);
@@ -112,6 +106,13 @@ public:
     Tensor<T> Transpose() const;
     Tensor<T> Transpose(size_t dim1, size_t dim2) const;
     Tensor<T> Permute(const std::vector<size_t>& axis) const;
+
+public:
+    Tensor<T> Squeeze(std::vector<size_t> dim);
+    Tensor<T> Squeeze(size_t dim);
+    Tensor<T> Squeeze();
+    Tensor<T> Unsqueeze(std::vector<size_t> dim);
+    Tensor<T> Unsqueeze(size_t dim);
 
 public:
     Tensor<T>& Abs_Inplace();
@@ -221,12 +222,20 @@ public:
 
     Tensor<size_t> Argmin(size_t dim, bool keep_dim) const;
     Tensor<size_t> Argmax(size_t dim, bool keep_dim) const;
+
 public:
-#if 0
     static Tensor<T> Matmul(const Tensor<T>& a, const Tensor<T>& b);  // 2D tensor only
     Tensor<T> Matmul(const Tensor<T>& other) const;                   // 2D tensor only
-    Tensor<T>& Matmul_Inplace(const Tensor<T>& other);                // 2D tensor only
-#endif
+
+    static Tensor<T> Vecmat(const Tensor<T>& a, const Tensor<T>& b);  // Vec * Mat 2D
+    static Tensor<T> Matvec(const Tensor<T>& a, const Tensor<T>& b);  // Mat 2D * Vec
+    static Tensor<T> Dot(const Tensor<T>& a, const Tensor<T>& b);     // Vec * Vec
+
+public:
+    static Tensor<T> Conv1D(const Tensor<T>& input, const Tensor<T>& kernel, const std::vector<size_t>& stride, const std::vector<size_t>& padding);
+    static Tensor<T> Conv2D(const Tensor<T>& input, const Tensor<T>& kernel, const std::vector<size_t>& stride, const std::vector<size_t>& padding);
+    static Tensor<T> Conv3D(const Tensor<T>& input, const Tensor<T>& kernel, const std::vector<size_t>& stride, const std::vector<size_t>& padding);
+
 private:
     void CalculateStrides();
 

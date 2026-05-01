@@ -60,42 +60,82 @@ TMP void Tensor<T>::CalculateStrides()
     }
 }
 
-TMP T& Tensor<T>::at(size_t id)
+TMP T& Tensor<T>::At(size_t id)
 {
     if (m_shape.size() != 1)
-        throw std::runtime_error("Function 'at(size_t)' only for 1-Dimension tensor");
+        throw std::runtime_error("Function 'At(size_t)' only for 1-Dimension tensor");
 
     if (id > m_size)
-        throw std::out_of_range("Function 'at(size_t)' out of range");
+        throw std::out_of_range("Function 'At(size_t)' out of range");
 
     return m_data[id];
 }
-TMP T& Tensor<T>::at(size_t m, size_t n)
+TMP T& Tensor<T>::At(size_t m, size_t n)
 {
     if (m_shape.size() != 2)
-        throw std::runtime_error("Function 'at(size_t, size_t)' only for 2-Dimension tensor");
+        throw std::runtime_error("Function 'At(size_t, size_t)' only for 2-Dimension tensor");
 
     size_t id = m * m_strides[0] + n;
     if (id > m_size)
-        throw std::out_of_range("Function 'at(size_t, size_t)' out of range");
+        throw std::out_of_range("Function 'At(size_t, size_t)' out of range");
 
     return m_data[id];
 }
-TMP T& Tensor<T>::at(const std::vector<size_t>& ids)
+TMP T& Tensor<T>::At(const std::vector<size_t>& ids)
 {
     if (m_shape.size() != ids.size())
-        throw std::runtime_error("Function 'at(const std::vector<size_t>&)' incorrect dimension. Tensor dimension = " + std::to_string(m_shape.size()) + "; IDs dimension = " + std::to_string(ids.size()));
+        throw std::runtime_error("Function 'At(const std::vector<size_t>&)' incorrect dimension. Tensor dimension = " + std::to_string(m_shape.size()) + "; IDs dimension = " + std::to_string(ids.size()));
 
     size_t id = 0;
     for (size_t i = 0; i < ids.size(); ++i) {
         if (ids[i] > m_shape[i])
-            throw std::out_of_range("Function 'at(const std::vector<size_t>&)' out of range");
+            throw std::out_of_range("Function 'At(const std::vector<size_t>&)' out of range");
 
         id += ids[i] * m_strides[i];
     }
 
     if (id > m_size)
-        throw std::out_of_range("Function 'at(size_t, size_t)' out of range");
+        throw std::out_of_range("Function 'At(size_t, size_t)' out of range");
+
+    return m_data[id];
+}
+
+TMP const T& Tensor<T>::At(size_t id) const
+{
+    if (m_shape.size() != 1)
+        throw std::runtime_error("Function 'At(size_t)' only for 1-Dimension tensor");
+
+    if (id > m_size)
+        throw std::out_of_range("Function 'At(size_t)' out of range");
+
+    return m_data[id];
+}
+TMP const T& Tensor<T>::At(size_t m, size_t n) const
+{
+    if (m_shape.size() != 2)
+        throw std::runtime_error("Function 'At(size_t, size_t)' only for 2-Dimension tensor");
+
+    size_t id = m * m_strides[0] + n;
+    if (id > m_size)
+        throw std::out_of_range("Function 'At(size_t, size_t)' out of range");
+
+    return m_data[id];
+}
+TMP const T& Tensor<T>::At(const std::vector<size_t>& ids) const
+{
+    if (m_shape.size() != ids.size())
+        throw std::runtime_error("Function 'At(const std::vector<size_t>&)' incorrect dimension. Tensor dimension = " + std::to_string(m_shape.size()) + "; IDs dimension = " + std::to_string(ids.size()));
+
+    size_t id = 0;
+    for (size_t i = 0; i < ids.size(); ++i) {
+        if (ids[i] > m_shape[i])
+            throw std::out_of_range("Function 'At(const std::vector<size_t>&)' out of range");
+
+        id += ids[i] * m_strides[i];
+    }
+
+    if (id > m_size)
+        throw std::out_of_range("Function 'At(size_t, size_t)' out of range");
 
     return m_data[id];
 }
@@ -235,6 +275,67 @@ TMP Tensor<T>& Tensor<T>::Permute_Inplace(const std::vector<size_t>& axis)
     m_shape = new_shape;
     m_strides = new_strides;
     return *this;
+}
+
+
+TMP Tensor<T> Tensor<T>::Squeeze(std::vector<size_t> dimensions)
+{
+    for (auto& d : dimensions) {
+        if (d >= m_shape.size()) {
+            throw std::runtime_error(std::string(__func__) + " error: Input dimension out of range");
+        }
+    }
+
+    std::vector<size_t> new_shape = m_shape;
+    std::vector<size_t> sort_dims = dimensions;
+    std::sort(sort_dims.begin(), sort_dims.end(), std::greater<size_t>());
+
+    for (auto& d : dimensions) {
+        if (new_shape[d] == 1) {
+            new_shape.erase(new_shape.begin() + d);
+        }
+    }
+    
+    return this->Reshape(new_shape);
+
+}
+TMP Tensor<T> Tensor<T>::Squeeze(size_t dimension)
+{
+    return this->Squeeze(std::vector<size_t>{dimension});
+}
+TMP Tensor<T> Tensor<T>::Squeeze()
+{
+    std::vector<size_t> new_shape{};
+
+    for (auto& s : m_shape) {
+        if (s != 1) {
+            new_shape.push_back(s);
+        }
+    }
+
+    return this->Reshape(new_shape);
+}
+TMP Tensor<T> Tensor<T>::Unsqueeze(std::vector<size_t> dimensions)
+{
+    for (auto& d : dimensions) {
+        if (d > m_shape.size()) {
+            throw std::runtime_error(std::string(__func__) + " error: Input dimension out of range");
+        }
+    }
+
+    std::vector<size_t> new_shape = m_shape;
+    std::vector<size_t> sort_dims = dimensions;
+    std::sort(sort_dims.begin(), sort_dims.end(), std::greater<size_t>());
+
+    for (auto& d : sort_dims)
+        new_shape.insert(new_shape.begin() + d, 1);
+
+    return this->Reshape(new_shape);
+}
+
+TMP Tensor<T> Tensor<T>::Unsqueeze(size_t dimension)
+{
+    return this->Unsqueeze(std::vector<size_t>{dimension});
 }
 
 TMP Tensor<T> Tensor<T>::Reshape(const std::vector<size_t>& dimensions) const
@@ -1233,28 +1334,184 @@ TMP Tensor<size_t> Tensor<T>::Argmax(size_t dim, bool keep_dim) const
     return Tensor<size_t>(new_shape, new_data);
 }
 
-
-#if 0
 TMP Tensor<T> Tensor<T>::Matmul(const Tensor<T>& a, const Tensor<T>& b)
 {
-    if (a.m_shape.size() != 2 || b.m_shape.size() != 2)
-        throw(std::string(__func__) + " error. Only for 2D tensor");
+    size_t dim_a = a.m_shape.size();
+    size_t dim_b = b.m_shape.size();
 
-    // to do
+    if (dim_a > 2 || dim_b > 2)
+        throw std::runtime_error(std::string(__func__) + " error. Only for 1D/2D tensors");
+
+    if (dim_a == 1 && dim_b == 1)
+        return Dot(a, b);
+
+    if (dim_a == 1)
+        return Vecmat(a, b);
+
+    if (dim_b == 1)
+        return Matvec(a, b);
+
+    size_t a_cols = a.m_shape[1];
+    size_t b_rows = b.m_shape[0];
+
+    if (a_cols != b_rows)
+        throw std::runtime_error(std::string(__func__) + " error. [A] columns count not equal [B] rows count");
+
+    size_t new_rows = a.m_shape[0];
+    size_t new_cols = b.m_shape[1];
+
+    Tensor<T> result = Tensor<T>({ new_rows, new_cols });
+
+    for (size_t r = 0; r < new_rows; ++r) {
+        for (size_t c = 0; c < new_cols; ++c) {
+            result.At(r, c) = T(0);
+            for (size_t i = 0; i < a_cols; ++i) {
+                result.At(r, c) += (a.At(r, i) * b.At(i, c));
+            }
+        }
+    }
+
+    return result;
 }
 TMP Tensor<T> Tensor<T>::Matmul(const Tensor<T>& other) const
 {
-    if (m_shape.size() != 2 || other.m_shape.size() != 2)
-        throw(std::string(__func__) + " error. Only for 2D tensor");
+    return Matmul(*this, other);
 }
-TMP Tensor<T>& Tensor<T>::Matmul_Inplace(const Tensor<T>& other)
-{
-    if (m_shape.size != 2)
-        throw(std::string(__func__) + " error. Only for 2D tensor");
-}
-#endif
 
-template class Tensor<int>;
+TMP Tensor<T> Tensor<T>::Vecmat(const Tensor<T>& a, const Tensor<T>& b)
+{
+    if (a.m_shape.size() != 1 || b.m_shape.size() != 2)
+        throw std::runtime_error(std::string(__func__) + " error. Tensor dimensions error");
+
+    size_t a_cols = a.m_shape[0];
+    size_t b_rows = b.m_shape[0];
+
+    if (a_cols != b_rows)
+        throw std::runtime_error(std::string(__func__) + " error. [A] columns count not equal [B] rows count");
+
+    size_t new_shape = b.m_shape[1]; 
+
+    Tensor<T> result = Tensor<T>(std::vector<size_t>{ new_shape });
+
+    for (size_t i = 0; i < new_shape; ++i) {
+        result.At(i) = T(0);
+        for (size_t c = 0; c < a_cols; ++c) {
+            result.At(i) += (a.At(c) * b.At(c, i));
+        }
+    }
+
+    return result;
+}
+TMP Tensor<T> Tensor<T>::Matvec(const Tensor<T>& a, const Tensor<T>& b)
+{
+    if (a.m_shape.size() != 2 || b.m_shape.size() != 1)
+        throw std::runtime_error(std::string(__func__) + " error. Tensor dimensions error");
+
+    size_t a_cols = a.m_shape[1];
+    size_t b_rows = b.m_shape[0];
+
+    if (a_cols != b_rows)
+        throw std::runtime_error(std::string(__func__) + " error. [A] columns count not equal [B] rows count");
+
+    size_t new_shape = a.m_shape[0];
+
+    Tensor<T> result = Tensor<T>(std::vector<size_t>{ new_shape });
+
+    for (size_t i = 0; i < new_shape; ++i) {
+        result.At(i) = T(0);
+        for (size_t c = 0; c < a_cols; ++c) {
+            result.At(i) += (a.At(i, c) * b.At(c));
+        }
+    }
+
+    return result;
+}
+TMP Tensor<T> Tensor<T>::Dot(const Tensor<T>& a, const Tensor<T>& b)
+{
+    if (a.m_shape.size() != 1 || b.m_shape.size() != 1)
+        throw std::runtime_error(std::string(__func__) + " error. Tensor dimensions error");
+
+    size_t a_vec_size = a.m_shape[0];
+    size_t b_vec_size = a.m_shape[0];
+
+    if (a_vec_size != b_vec_size)
+        throw std::runtime_error(std::string(__func__) + " error. Tensor shapes not equal");
+
+    T result = T(0);
+    for (size_t i = 0; i < a_vec_size; ++i) 
+        result += a.m_data[i] * b.m_data[i];
+
+    return Tensor<T>(result);
+}
+
+TMP Tensor<T> Tensor<T>::Conv1D(const Tensor<T>& input, const Tensor<T>& kernel, const std::vector<size_t>& stride, const std::vector<size_t>& padding)
+{
+    size_t dim_size = 1;
+    if (input.m_shape.size() != dim_size || kernel.m_shape.size() != dim_size || stride.size() != dim_size || padding.size() != dim_size)
+        throw std::runtime_error(std::string(__func__) + " error. Check input/kernel/stride/padding dimensions (Must be " + std::to_string(dim_size) + ")");
+
+    std::vector<size_t> out_shape = { 0 };
+    for (size_t i = 0; i < out_shape.size(); ++i)
+        out_shape[i] = std::floor((input.m_shape[i] - kernel.m_shape[i] + 2 * padding[i]) / stride[i]) + 1;
+
+    Tensor<T> result = Tensor<T>(out_shape, 0);
+
+    auto s = stride[0];
+    auto p = padding[0];
+    auto K = kernel.m_shape[0];
+
+    for (size_t i = 0; i < out_shape[0]; ++i) {
+        T value = T(0);
+        for (size_t k = 0; k < K; ++k) {
+            int id = s * i + k - p;
+            if (id >= 0 && id < input.m_shape[0])
+                value += input.At({ (size_t)id }) * kernel.At({k});
+        }
+    }
+
+    std::vector<size_t> result_shape = { 1, 1 };
+    for (size_t i = 0; i < out_shape.size(); ++i)
+        result_shape.push_back(out_shape[i]);
+
+    return result.Reshape_Inplace(result_shape);
+}
+TMP Tensor<T> Tensor<T>::Conv2D(const Tensor<T>& input, const Tensor<T>& kernel, const std::vector<size_t>& stride, const std::vector<size_t>& padding)
+{
+    size_t dim_size = 2;
+    if (input.m_shape.size() != dim_size || kernel.m_shape.size() != dim_size || stride.size() != dim_size || padding.size() != dim_size)
+        throw std::runtime_error(std::string(__func__) + " error. Check input/kernel/stride/padding dimensions (Must be " + std::to_string(dim_size) + ")");
+
+    std::vector<size_t> out_shape = { 0, 0 };
+    for (size_t i = 0; i < out_shape.size(); ++i)
+        out_shape[i] = std::floor((input.m_shape[i] - kernel.m_shape[i] + 2 * padding[i]) / stride[i]) + 1;
+
+    Tensor<T> result = Tensor<T>(out_shape, 0);
+   
+    std::vector<size_t> result_shape = { 1, 1 };
+    for (size_t i = 0; i < out_shape.size(); ++i)
+        result_shape.push_back(out_shape[i]);
+
+    return result.Reshape_Inplace(result_shape);
+}
+TMP Tensor<T> Tensor<T>::Conv3D(const Tensor<T>& input, const Tensor<T>& kernel, const std::vector<size_t>& stride, const std::vector<size_t>& padding)
+{
+    size_t dim_size = 3;
+    if (input.m_shape.size() != dim_size || kernel.m_shape.size() != dim_size || stride.size() != dim_size || padding.size() != dim_size)
+        throw std::runtime_error(std::string(__func__) + " error. Check input/kernel/stride/padding dimensions (Must be " + std::to_string(dim_size) + ")");
+
+    std::vector<size_t> out_shape = { 0, 0, 0 };
+    for (size_t i = 0; i < out_shape.size(); ++i)
+        out_shape[i] = std::floor((input.m_shape[i] - kernel.m_shape[i] + 2 * padding[i]) / stride[i]) + 1;
+    
+    Tensor<T> result = Tensor<T>(out_shape, 0);
+
+    std::vector<size_t> result_shape = { 1, 1 };
+    for (size_t i = 0; i < out_shape.size(); ++i)
+        result_shape.push_back(out_shape[i]);
+
+    return result.Reshape_Inplace(result_shape);
+}
+
 template class Tensor<bool>;
 template class Tensor<float>;
 template class Tensor<double>;
